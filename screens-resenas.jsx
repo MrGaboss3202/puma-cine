@@ -427,11 +427,23 @@ function Login({ onLogin, onRoute }) {
     <div className="pc-login pc-screen-fade">
       <div className="pc-login-art">
         <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 28 }}>
-          <img
-            src="assets/puma-cine-logo.png"
-            alt="Puma Cine"
-            style={{ width: 180, height: 180, objectFit: "contain", filter: "drop-shadow(0 6px 28px rgba(168, 128, 44, 0.45))" }}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+            <img
+              src="assets/puma-cine-logo.png"
+              alt="Puma Cine"
+              style={{ width: 180, height: 180, objectFit: "contain", filter: "drop-shadow(0 6px 28px rgba(168, 128, 44, 0.45))" }}
+            />
+            <div style={{
+              width: 1,
+              height: 120,
+              background: "linear-gradient(to bottom, transparent, rgba(245, 240, 225, 0.25), transparent)"
+            }} />
+            <img
+              src="assets/unam-logo.png"
+              alt="UNAM"
+              style={{ width: 150, height: 150, objectFit: "contain", filter: "drop-shadow(0 6px 28px rgba(168, 128, 44, 0.45))" }}
+            />
+          </div>
           <div className="pc-logo-text" style={{ fontSize: 30 }}>
             Puma <em style={{ color: "var(--oro)", fontStyle: "italic" }}>Cine</em>
           </div>
