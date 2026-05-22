@@ -224,10 +224,21 @@
 
     /* INSERT INTO RESENA (...) VALUES (...) */
     async crearResena({ id_usuario, id_pelicula, headline, descripcion, calificacion }) {
+      // HEADLINE está limitado a VARCHAR2(50); truncamos por las dudas
+      // (Oracle cuenta bytes y los acentos ocupan 2, así que un texto
+      // "visible" de 50 chars puede pasarse).
+      const safeHeadline = headline ? String(headline).slice(0, 45) : null;
+      // ID_RESENA: si tu tabla no tiene secuencia + trigger BEFORE INSERT,
+      // AutoREST falla con 555/ORA-01400. Calculamos el siguiente id desde
+      // el cliente (max actual + 1) y lo enviamos explícitamente.
+      const maxId = (window.PC_DATA.resenas || [])
+        .reduce((m, r) => Math.max(m, r.id_resena || 0), 0);
+      const nuevoId = maxId + 1;
       return post("resena", {
+        id_resena: nuevoId,
         id_usuario,
         id_pelicula,
-        headline: headline || null,
+        headline: safeHeadline,
         descripcion,
         calificacion
       });
@@ -241,6 +252,13 @@
     /* DELETE FROM USUARIO_PELICULA WHERE ... */
     async quitarMiLista(id_usuario_pelicula) {
       return del("usuario_pelicula", id_usuario_pelicula);
+    },
+
+    /* GET /usuario_pelicula/ — recarga sólo esa tabla (útil tras un
+       trigger que la modifica, p.ej. trg_resena_marca_vista). */
+    async recargarUsuarioPelicula() {
+      const filas = await getAll("usuario_pelicula");
+      return filas.map(lowercaseKeys);
     },
 
     /* INSERT INTO USUARIO (...) — registro de nuevo usuario */

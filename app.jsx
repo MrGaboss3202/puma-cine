@@ -171,10 +171,38 @@ function App() {
           descripcion: data.descripcion,
           calificacion: data.calificacion
         });
+
+        // El trigger trg_resena_marca_vista insertó/actualizó la fila en
+        // USUARIO_PELICULA del lado del servidor. Recargamos esa tabla
+        // desde APEX para que "Mi Lista" se actualice sin recargar la
+        // página (cubre tanto el caso de INSERT como el de UPDATE del
+        // trigger MERGE).
+        try {
+          const filas = await window.PC_API.recargarUsuarioPelicula();
+          window.PC_DATA.usuario_pelicula = filas;
+          if (currentUser) {
+            const propias = filas.filter(up => up.id_usuario === currentUser.id_usuario);
+            setMiLista(propias.map(up => up.id_pelicula));
+            setMiListaIds(Object.fromEntries(
+              propias.map(up => [up.id_pelicula, up.id_usuario_pelicula || up.id || null])
+            ));
+          }
+        } catch (reloadErr) {
+          // Si la recarga falla, al menos hacemos un optimistic update
+          console.warn("No se pudo recargar usuario_pelicula:", reloadErr);
+          setMiLista(prev =>
+            prev.includes(data.id_pelicula) ? prev : [...prev, data.id_pelicula]
+          );
+        }
       } catch (err) {
         console.error("Error guardando reseña:", err);
-        setToast("Error al guardar en BD");
+        setToast("Error al guardar: " + (err.message || "desconocido"));
       }
+    } else {
+      // En modo mock también añadimos localmente para simular el trigger
+      setMiLista(prev =>
+        prev.includes(data.id_pelicula) ? prev : [...prev, data.id_pelicula]
+      );
     }
   };
 
