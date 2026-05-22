@@ -1,0 +1,215 @@
+/* ============================================================
+   PUMA CINE — APEX REST API
+   ------------------------------------------------------------
+   Capa de comunicación entre el prototipo y tu BD Oracle APEX.
+   Usa los AutoREST endpoints que APEX genera automáticamente
+   cuando activas RESTful Services en una tabla.
+
+   Cada endpoint AutoREST responde:
+     GET    /tabla/        →  { items: [...], hasMore: false }
+     GET    /tabla/:id     →  { ... } (un registro)
+     POST   /tabla/        →  201 Created (envía JSON con columnas)
+     PUT    /tabla/:id     →  200 OK
+     DELETE /tabla/:id     →  204 No Content
+   ============================================================ */
+
+(function () {
+  const CFG = window.PC_CONFIG;
+
+  function endpoint(name) {
+    return CFG.API_BASE.replace(/\/+$/, "") + "/" + CFG.ENDPOINTS[name];
+  }
+
+  async function getAll(name) {
+    const r = await fetch(endpoint(name));
+    if (!r.ok) throw new Error(`GET ${name}: ${r.status}`);
+    const json = await r.json();
+    return json.items || json;
+  }
+
+  async function post(name, body) {
+    const r = await fetch(endpoint(name), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error(`POST ${name}: ${r.status}`);
+    return r.json().catch(() => ({}));
+  }
+
+  async function del(name, id) {
+    const url = endpoint(name) + id;
+    const r = await fetch(url, { method: "DELETE" });
+    if (!r.ok) throw new Error(`DELETE ${name}/${id}: ${r.status}`);
+    return true;
+  }
+
+  /* ============================================================
+     Normalizadores — convierten la respuesta de APEX al shape
+     que espera el prototipo (agregan campos _ui de respaldo).
+     ============================================================ */
+
+  // Genera un gradiente reproducible a partir del id (para
+  // películas sin POSTER_URL, así cada una tiene su color)
+  function gradientPara(id) {
+    const palettes = [
+      "linear-gradient(135deg, #1a4d8a 0%, #0a1530 70%)",
+      "linear-gradient(135deg, #A8802C 0%, #5e4318 50%, #0a1530 100%)",
+      "linear-gradient(135deg, #0a1530 0%, #1E3A7A 50%, #14296B 100%)",
+      "linear-gradient(135deg, #B89045 0%, #6E5318 40%, #0a1530 100%)",
+      "linear-gradient(135deg, #c44d4d 0%, #6e1a1a 50%, #0a1530 100%)",
+      "linear-gradient(135deg, #802929 0%, #14296B 60%, #050912 100%)",
+      "linear-gradient(135deg, #2D52A8 0%, #0a1530 100%)",
+      "linear-gradient(135deg, #A8802C 0%, #802929 50%, #14296B 100%)",
+      "linear-gradient(135deg, #14296B 0%, #050912 50%, #802929 100%)",
+      "linear-gradient(135deg, #6E5318 0%, #A8802C 30%, #0a1530 100%)"
+    ];
+    return palettes[id % palettes.length];
+  }
+
+  function inicial(s) {
+    return (s || "?").trim().charAt(0).toUpperCase();
+  }
+
+  function avatarColor(id) {
+    const colors = ["#2D52A8", "#1E3A7A", "#3B5BBF", "#14296B", "#2949A6"];
+    return colors[id % colors.length];
+  }
+
+  function normalizePelicula(p) {
+    // APEX puede devolver las columnas en mayúsculas o minúsculas
+    // dependiendo de la versión — normalizamos a minúsculas
+    const k = lowercaseKeys(p);
+    return {
+      id_pelicula: k.id_pelicula,
+      titulo: k.titulo,
+      sinopsis: k.sinopsis,
+      director: k.director,
+      poster_url: k.poster_url,
+      ano_estreno: k.ano_estreno,
+      duracion_minutos: k.duracion_minutos,
+      _ui: {
+        gradient: gradientPara(k.id_pelicula),
+        pais: null,
+        idioma: null,
+        tagline: null,
+        destacada: false
+      }
+    };
+  }
+
+  function normalizeUsuario(u) {
+    const k = lowercaseKeys(u);
+    return {
+      id_usuario: k.id_usuario,
+      nombre_usuario: k.nombre_usuario,
+      nombre_completo: k.nombre_completo,
+      email: k.email,
+      activo: k.activo,
+      fecha_registro: k.fecha_registro,
+      _ui: {
+        inicial: inicial(k.nombre_completo || k.nombre_usuario),
+        color: avatarColor(k.id_usuario)
+      }
+    };
+  }
+
+  function normalizeResena(r) {
+    const k = lowercaseKeys(r);
+    return {
+      id_resena: k.id_resena,
+      id_usuario: k.id_usuario,
+      id_pelicula: k.id_pelicula,
+      headline: k.headline,
+      descripcion: k.descripcion,
+      calificacion: k.calificacion,
+      _ui: {
+        fecha: (k.created_on || new Date().toISOString()).slice(0, 10),
+        likes: 0
+      }
+    };
+  }
+
+  function lowercaseKeys(obj) {
+    const out = {};
+    for (const key in obj) {
+      out[key.toLowerCase()] = obj[key];
+    }
+    return out;
+  }
+
+  /* ============================================================
+     API pública
+     ============================================================ */
+
+  window.PC_API = {
+
+    /* Carga inicial completa — trae todas las tablas en paralelo */
+    async cargarTodo() {
+      const [
+        peliculas,
+        usuarios,
+        generos,
+        etiquetas,
+        resenas,
+        pelicula_genero,
+        pelicula_etiqueta,
+        usuario_pelicula
+      ] = await Promise.all([
+        getAll("pelicula"),
+        getAll("usuario"),
+        getAll("genero"),
+        getAll("etiqueta"),
+        getAll("resena"),
+        getAll("pelicula_genero"),
+        getAll("pelicula_etiqueta"),
+        getAll("usuario_pelicula")
+      ]);
+
+      return {
+        peliculas: peliculas.map(normalizePelicula),
+        usuarios: usuarios.map(normalizeUsuario),
+        generos: generos.map(lowercaseKeys),
+        etiquetas: etiquetas.map(lowercaseKeys),
+        resenas: resenas.map(normalizeResena),
+        pelicula_genero: pelicula_genero.map(lowercaseKeys),
+        pelicula_etiqueta: pelicula_etiqueta.map(lowercaseKeys),
+        usuario_pelicula: usuario_pelicula.map(lowercaseKeys)
+      };
+    },
+
+    /* INSERT INTO RESENA (...) VALUES (...) */
+    async crearResena({ id_usuario, id_pelicula, headline, descripcion, calificacion }) {
+      return post("resena", {
+        id_usuario,
+        id_pelicula,
+        headline: headline || null,
+        descripcion,
+        calificacion
+      });
+    },
+
+    /* INSERT INTO USUARIO_PELICULA (id_usuario, id_pelicula) VALUES (...) */
+    async agregarMiLista(id_usuario, id_pelicula) {
+      return post("usuario_pelicula", { id_usuario, id_pelicula });
+    },
+
+    /* DELETE FROM USUARIO_PELICULA WHERE ... */
+    async quitarMiLista(id_usuario_pelicula) {
+      return del("usuario_pelicula", id_usuario_pelicula);
+    },
+
+    /* INSERT INTO USUARIO (...) — registro de nuevo usuario */
+    async registrarUsuario({ nombre_usuario, nombre_completo, email, contrasena }) {
+      return post("usuario", {
+        nombre_usuario,
+        nombre_completo,
+        email,
+        contrasena,
+        activo: 1,
+        fecha_registro: new Date().toISOString().slice(0, 10)
+      });
+    }
+  };
+
+})();
