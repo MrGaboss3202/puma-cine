@@ -50,7 +50,9 @@
   }
 
   async function post(name, body) {
-    const r = await fetch(endpoint(name), {
+    const url = endpoint(name);
+    console.log(`[Puma Cine] POST ${url}`, body);
+    const r = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
@@ -61,6 +63,7 @@
       let detalle = "";
       try {
         const txt = await r.text();
+        console.log(`[Puma Cine] POST ${name} ← respuesta cruda:`, txt);
         try {
           const j = JSON.parse(txt);
           detalle = j.message || j.title || txt.slice(0, 200);
@@ -224,24 +227,26 @@
 
     /* INSERT INTO RESENA (...) VALUES (...) */
     async crearResena({ id_usuario, id_pelicula, headline, descripcion, calificacion }) {
-      // HEADLINE está limitado a VARCHAR2(50); truncamos por las dudas
-      // (Oracle cuenta bytes y los acentos ocupan 2, así que un texto
-      // "visible" de 50 chars puede pasarse).
+      // HEADLINE está limitado a VARCHAR2(50); truncamos por si acaso
+      // (Oracle cuenta bytes y los acentos ocupan 2).
       const safeHeadline = headline ? String(headline).slice(0, 45) : null;
-      // ID_RESENA: si tu tabla no tiene secuencia + trigger BEFORE INSERT,
-      // AutoREST falla con 555/ORA-01400. Calculamos el siguiente id desde
-      // el cliente (max actual + 1) y lo enviamos explícitamente.
-      const maxId = (window.PC_DATA.resenas || [])
-        .reduce((m, r) => Math.max(m, r.id_resena || 0), 0);
-      const nuevoId = maxId + 1;
-      return post("resena", {
-        id_resena: nuevoId,
+
+      // Cuerpo del POST. No enviamos ID_RESENA: si tu tabla tiene una
+      // secuencia + trigger BEFORE INSERT, Oracle lo asigna solo. Si no,
+      // tendrás que mandar el id explícito (avisame).
+      const body = {
         id_usuario,
         id_pelicula,
         headline: safeHeadline,
         descripcion,
         calificacion
-      });
+      };
+
+      // Log de diagnóstico para ver qué exactamente estamos mandando
+      // (abrir DevTools → Console al publicar reseña).
+      console.log("[Puma Cine] POST /resena/ body:", body);
+
+      return post("resena", body);
     },
 
     /* INSERT INTO USUARIO_PELICULA (id_usuario, id_pelicula) VALUES (...) */
