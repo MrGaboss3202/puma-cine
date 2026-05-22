@@ -7,17 +7,32 @@ const { useState: useStateHD, useMemo: useMemoHD } = React;
 function Home({ onPick, onRoute }) {
   const data = window.PC_DATA;
   const H = window.PC_HELPERS;
-  const destacada = data.peliculas.find(p => p._ui?.destacada) || data.peliculas[1];
   const mejorCalificadas = [...data.peliculas]
     .map(p => ({ ...p, _promedio: H.promedioPelicula(p.id_pelicula) }))
     .sort((a, b) => b._promedio - a._promedio)
     .slice(0, 10);
+
+  // Películas que rotan en el hero: top 7 (incluye la marcada destacada al frente)
+  const destacadaFija = data.peliculas.find(p => p._ui?.destacada);
+  const heroBase = mejorCalificadas.slice(0, 7);
+  const heroPeliculas = destacadaFija
+    ? [destacadaFija, ...heroBase.filter(p => p.id_pelicula !== destacadaFija.id_pelicula)].slice(0, 7)
+    : heroBase;
   const recientes = [...data.peliculas].sort((a, b) => b.ano_estreno - a.ano_estreno).slice(0, 8);
-  const mexicano = data.peliculas.filter(p => p._ui?.pais === "México");
+
+  // "Cine mexicano" incluye películas marcadas como mexicanas por país
+  // (_ui.pais) o cuyo género se llame "Mexicano" / "México" en la BD
+  // (caso APEX, donde _ui.pais no se pobla).
+  const esCineMexicano = (p) => {
+    if (p._ui?.pais === "México") return true;
+    const gens = H.generosDePelicula(p.id_pelicula) || [];
+    return gens.some(g => /mexican|m[eé]xico/i.test(g?.nombre || ""));
+  };
+  const mexicano = data.peliculas.filter(esCineMexicano);
 
   return (
     <div className="pc-screen-fade">
-      <Hero pelicula={destacada} onPick={onPick} onRoute={onRoute} />
+      <HeroCarousel peliculas={heroPeliculas} onPick={onPick} onRoute={onRoute} />
       <Carousel
         title={<span>Top 10 <em>de la semana</em></span>}
         link={{ label: "Ver todas", onClick: () => onRoute({ name: "mejor-calificadas" }) }}
@@ -80,6 +95,89 @@ function Hero({ pelicula, onPick, onRoute }) {
 }
 
 /* ============================================================
+   HERO CAROUSEL — rotación automática de películas destacadas
+   ============================================================ */
+const { useEffect: useEffectHC, useState: useStateHC, useRef: useRefHC } = React;
+
+function HeroCarousel({ peliculas, onPick, onRoute }) {
+  const [idx, setIdx] = useStateHC(0);
+  const [pausado, setPausado] = useStateHC(false);
+  const timerRef = useRefHC(null);
+  const total = peliculas.length;
+
+  // Auto-avance cada 6s, pausa al hacer hover sobre el hero o al estar fuera de pantalla
+  useEffectHC(() => {
+    if (total <= 1 || pausado) return;
+    timerRef.current = setInterval(() => {
+      setIdx(i => (i + 1) % total);
+    }, 6000);
+    return () => clearInterval(timerRef.current);
+  }, [total, pausado]);
+
+  // Si la lista cambia de tamaño, resetea
+  useEffectHC(() => {
+    if (idx >= total) setIdx(0);
+  }, [total, idx]);
+
+  if (total === 0) return null;
+  if (total === 1) return <Hero pelicula={peliculas[0]} onPick={onPick} onRoute={onRoute} />;
+
+  const go = (n) => setIdx(((n % total) + total) % total);
+  const prev = () => go(idx - 1);
+  const next = () => go(idx + 1);
+
+  return (
+    <div
+      className="pc-hero-carousel"
+      onMouseEnter={() => setPausado(true)}
+      onMouseLeave={() => setPausado(false)}
+    >
+      {peliculas.map((p, i) => (
+        <div
+          key={p.id_pelicula}
+          className={"pc-hero-slide " + (i === idx ? "active" : "")}
+          aria-hidden={i !== idx}
+        >
+          <Hero pelicula={p} onPick={onPick} onRoute={onRoute} />
+        </div>
+      ))}
+
+      <button
+        className="pc-hero-arrow pc-hero-arrow-prev"
+        onClick={prev}
+        aria-label="Película anterior"
+      >
+        <span>‹</span>
+      </button>
+      <button
+        className="pc-hero-arrow pc-hero-arrow-next"
+        onClick={next}
+        aria-label="Película siguiente"
+      >
+        <span>›</span>
+      </button>
+
+      <div className="pc-hero-dots" role="tablist" aria-label="Películas destacadas">
+        {peliculas.map((p, i) => (
+          <button
+            key={p.id_pelicula}
+            className={"pc-hero-dot " + (i === idx ? "active" : "")}
+            onClick={() => go(i)}
+            aria-label={`Ir a ${p.titulo}`}
+            title={p.titulo}
+          >
+            <span
+              className="pc-hero-dot-fill"
+              style={{ animationDuration: i === idx && !pausado ? "6000ms" : "0ms" }}
+            />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    PELÍCULAS — grid + filtros
    ============================================================ */
 function Peliculas({ onPick, query, filtroPais }) {
@@ -97,7 +195,18 @@ function Peliculas({ onPick, query, filtroPais }) {
     if (genero) {
       r = r.filter(p => H.generosDePelicula(p.id_pelicula).some(g => g.id_genero === genero));
     }
-    if (filtroPais) r = r.filter(p => p._ui?.pais === filtroPais);
+    if (filtroPais) {
+      r = r.filter(p => {
+        if (p._ui?.pais === filtroPais) return true;
+        // Cuando filtramos "México", también aceptamos películas que tengan
+        // un género llamado "Mexicano" / "México" en la BD APEX.
+        if (/^m[eé]xico$/i.test(filtroPais)) {
+          const gens = H.generosDePelicula(p.id_pelicula) || [];
+          return gens.some(g => /mexican|m[eé]xico/i.test(g?.nombre || ""));
+        }
+        return false;
+      });
+    }
     if (orden === "rating") {
       r = [...r].sort((a, b) => H.promedioPelicula(b.id_pelicula) - H.promedioPelicula(a.id_pelicula));
     }

@@ -303,29 +303,113 @@ function MejorCalificadas({ onPick }) {
    ------------------------------------------------------------ */
 function Login({ onLogin, onRoute }) {
   const [modo, setModo] = useStateUR("login"); // login | registro
-  const [email, setEmail] = useStateUR("aleluna0407@icloud.com");
+  const [email, setEmail] = useStateUR("");
   const [pass, setPass]   = useStateUR("");
   const [nombre, setNombre] = useStateUR("");
+  const [error, setError] = useStateUR("");
+  const [cargando, setCargando] = useStateUR(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    let user;
+    setError("");
+    const cfg = window.PC_CONFIG;
+
     if (modo === "login") {
-      user = window.PC_DATA.usuarios.find(u =>
-        u.email.toLowerCase() === email.toLowerCase()
-      ) || window.PC_DATA.usuarios[1]; // demo fallback
-    } else {
-      user = {
-        id_usuario: 99,
-        nombre_usuario: (nombre.split(" ")[0] || "nuevo").toLowerCase(),
-        nombre_completo: nombre || "Nuevo usuario",
-        email: email,
-        activo: 1,
-        fecha_registro: new Date().toISOString().slice(0, 10),
-        _ui: { inicial: (nombre[0] || "N").toUpperCase(), color: "#2D52A8" }
-      };
+      /* === Validar credenciales contra la tabla USUARIO === */
+      const user = (window.PC_DATA.usuarios || []).find(u =>
+        (u.email || "").toLowerCase() === email.trim().toLowerCase()
+      );
+      if (!user) {
+        setError("No existe una cuenta con ese correo.");
+        return;
+      }
+      if (user.activo === 0) {
+        setError("Esta cuenta está desactivada.");
+        return;
+      }
+      // Si el usuario tiene contraseña en la BD, comparamos exactamente.
+      // Si no la tiene (modo mock antiguo sin columna), aceptamos cualquier
+      // contraseña no vacía para no romper la demo.
+      if (user.contrasena != null && String(user.contrasena) !== pass) {
+        setError("Contraseña incorrecta.");
+        return;
+      }
+      if (user.contrasena == null && pass.length === 0) {
+        setError("Escribe tu contraseña.");
+        return;
+      }
+      onLogin(user);
+      return;
     }
-    onLogin(user);
+
+    /* === Registro: insertar en la tabla USUARIO === */
+    const nombreCompleto = nombre.trim();
+    const correo = email.trim();
+    if (!nombreCompleto || !correo || !pass) {
+      setError("Completa todos los campos.");
+      return;
+    }
+    // ¿Ya existe?
+    const yaExiste = (window.PC_DATA.usuarios || []).some(u =>
+      (u.email || "").toLowerCase() === correo.toLowerCase()
+    );
+    if (yaExiste) {
+      setError("Ya existe una cuenta con ese correo.");
+      return;
+    }
+    const nombreUsuario = (nombreCompleto.split(" ")[0] || "user").toLowerCase()
+      + "_" + Math.random().toString(36).slice(2, 5);
+
+    setCargando(true);
+    let nuevoId;
+    let fechaReg = new Date().toISOString().slice(0, 10);
+
+    if (cfg?.USE_REAL_API) {
+      try {
+        const resp = await window.PC_API.registrarUsuario({
+          nombre_usuario: nombreUsuario,
+          nombre_completo: nombreCompleto,
+          email: correo,
+          contrasena: pass
+        });
+        // APEX AutoREST suele devolver la fila insertada (o un array dentro de "items")
+        const fila = resp?.items?.[0] || resp;
+        const k = {};
+        for (const key in (fila || {})) k[key.toLowerCase()] = fila[key];
+        nuevoId = k.id_usuario;
+      } catch (err) {
+        console.error("Error registrando usuario:", err);
+        // Mostramos el detalle real que devolvió APEX (constraint, columna,
+        // etc.) para no tener que abrir la consola.
+        setError("No se pudo guardar: " + (err.message || "error desconocido"));
+        setCargando(false);
+        return;
+      }
+    }
+    setCargando(false);
+
+    if (!nuevoId) {
+      // Fallback (modo mock): genero un id local incremental
+      const ids = (window.PC_DATA.usuarios || []).map(u => u.id_usuario || 0);
+      nuevoId = (ids.length ? Math.max(...ids) : 0) + 1;
+    }
+
+    const nuevo = {
+      id_usuario: nuevoId,
+      nombre_usuario: nombreUsuario,
+      nombre_completo: nombreCompleto,
+      email: correo,
+      contrasena: pass,
+      activo: 1,
+      fecha_registro: fechaReg,
+      _ui: {
+        inicial: (nombreCompleto[0] || "U").toUpperCase(),
+        color: "#2D52A8"
+      }
+    };
+    // Lo añadimos al store local para que aparezca de inmediato en la UI
+    window.PC_DATA.usuarios = [...(window.PC_DATA.usuarios || []), nuevo];
+    onLogin(nuevo);
   };
 
   return (
@@ -389,16 +473,34 @@ function Login({ onLogin, onRoute }) {
               />
             </div>
 
-            <button type="submit" className="pc-btn pc-btn-primary" style={{ width: "100%", justifyContent: "center" }}>
-              {modo === "login" ? "Iniciar sesión" : "Crear cuenta"}
+            <button type="submit" className="pc-btn pc-btn-primary" style={{ width: "100%", justifyContent: "center" }} disabled={cargando}>
+              {cargando
+                ? "Guardando…"
+                : modo === "login" ? "Iniciar sesión" : "Crear cuenta"}
             </button>
+
+            {error && (
+              <p style={{
+                marginTop: 14,
+                padding: "10px 14px",
+                background: "rgba(196, 50, 43, 0.12)",
+                border: "1px solid rgba(196, 50, 43, 0.35)",
+                borderRadius: "var(--r-md)",
+                color: "var(--rojo)",
+                fontSize: 13,
+                fontFamily: "var(--font-body)",
+                textAlign: "center"
+              }}>
+                {error}
+              </p>
+            )}
           </form>
 
           <p className="pc-link-row">
             {modo === "login" ? (
-              <>¿Eres nuevo? <a onClick={() => setModo("registro")}>Crea una cuenta</a></>
+              <>¿Eres nuevo? <a onClick={() => { setError(""); setModo("registro"); }}>Crea una cuenta</a></>
             ) : (
-              <>¿Ya tienes cuenta? <a onClick={() => setModo("login")}>Inicia sesión</a></>
+              <>¿Ya tienes cuenta? <a onClick={() => { setError(""); setModo("login"); }}>Inicia sesión</a></>
             )}
           </p>
           <p className="pc-link-row" style={{ marginTop: 8 }}>

@@ -21,10 +21,32 @@
   }
 
   async function getAll(name) {
-    const r = await fetch(endpoint(name));
-    if (!r.ok) throw new Error(`GET ${name}: ${r.status}`);
-    const json = await r.json();
-    return json.items || json;
+    // APEX AutoREST pagina por defecto a 25 filas y devuelve hasMore: true
+    // junto con un link rel="next". Recorremos todas las páginas para
+    // entregar el catálogo completo, no solo los primeros 25.
+    const base = endpoint(name);
+    // Pedimos páginas grandes para minimizar round-trips
+    const PAGE = 1000;
+    let url = base + (base.includes("?") ? "&" : "?") + "limit=" + PAGE + "&offset=0";
+    let all = [];
+    let guard = 0;
+    while (url && guard < 50) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`GET ${name}: ${r.status}`);
+      const json = await r.json();
+      const items = json.items || json;
+      if (Array.isArray(items)) all = all.concat(items);
+      else return items; // respuesta no paginada
+      // ¿más páginas? APEX devuelve hasMore + un links[] con rel:"next"
+      const nextLink = (json.links || []).find(l => l.rel === "next");
+      if (json.hasMore && nextLink && nextLink.href) {
+        url = nextLink.href;
+      } else {
+        url = null;
+      }
+      guard++;
+    }
+    return all;
   }
 
   async function post(name, body) {
@@ -33,7 +55,22 @@
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    if (!r.ok) throw new Error(`POST ${name}: ${r.status}`);
+    if (!r.ok) {
+      // Intentamos extraer el detalle de APEX (suele venir un JSON con
+      // "message" o "title" describiendo qué constraint o columna falló).
+      let detalle = "";
+      try {
+        const txt = await r.text();
+        try {
+          const j = JSON.parse(txt);
+          detalle = j.message || j.title || txt.slice(0, 200);
+        } catch {
+          detalle = txt.slice(0, 200);
+        }
+      } catch {}
+      console.error(`[Puma Cine] POST ${name} → ${r.status}`, detalle);
+      throw new Error(`POST ${name}: ${r.status}${detalle ? " · " + detalle : ""}`);
+    }
     return r.json().catch(() => ({}));
   }
 
@@ -100,12 +137,19 @@
 
   function normalizeUsuario(u) {
     const k = lowercaseKeys(u);
+    // ACTIVO en APEX viene como 'S'/'N' (string) — normalizamos a 1/0
+    let activo = k.activo;
+    if (typeof activo === "string") {
+      activo = /^[sy1t]/i.test(activo) ? 1 : 0;
+    }
     return {
       id_usuario: k.id_usuario,
       nombre_usuario: k.nombre_usuario,
       nombre_completo: k.nombre_completo,
       email: k.email,
-      activo: k.activo,
+      // Conservamos contrasena (no se expone en UI, solo se usa para validar login)
+      contrasena: k.contrasena,
+      activo,
       fecha_registro: k.fecha_registro,
       _ui: {
         inicial: inicial(k.nombre_completo || k.nombre_usuario),
@@ -201,13 +245,17 @@
 
     /* INSERT INTO USUARIO (...) — registro de nuevo usuario */
     async registrarUsuario({ nombre_usuario, nombre_completo, email, contrasena }) {
+      // ACTIVO en tu tabla es 'S'/'N' (VARCHAR2(1) con CHECK constraint).
+      // FECHA_REGISTRO es NOT NULL: APEX AutoREST espera la fecha como
+      // ISO 8601 completo (con hora y zona Z), si no, falla el parseo.
+      const ahora = new Date().toISOString().slice(0, 19) + "Z"; // 2026-05-22T12:34:56Z
       return post("usuario", {
         nombre_usuario,
         nombre_completo,
         email,
         contrasena,
-        activo: 1,
-        fecha_registro: new Date().toISOString().slice(0, 10)
+        activo: "S",
+        fecha_registro: ahora
       });
     }
   };

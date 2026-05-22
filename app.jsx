@@ -287,7 +287,82 @@ function App() {
         </span>
       </footer>
 
+      <NavSiguientePestana route={route} onRoute={onRoute} />
+
       <Toast msg={toast} />
+    </>
+  );
+}
+
+/* ------------------------------------------------------------
+   NAV SIGUIENTE PESTAÑA — botón flotante al final de la página
+   que cicla entre las secciones principales del header.
+   ------------------------------------------------------------ */
+function NavSiguientePestana({ route, onRoute }) {
+  const PESTANAS = [
+    { name: "home",              label: "Inicio" },
+    { name: "peliculas",         label: "Películas" },
+    { name: "resenas",           label: "Reseñas" },
+    { name: "mi-lista",          label: "Mi Lista" },
+    { name: "mejor-calificadas", label: "Mejor Calificadas" }
+  ];
+
+  // Si estoy en una pestaña principal, avanzo a la siguiente; si estoy en
+  // una vista secundaria (detalle, formulario, perfil) regreso a Inicio.
+  const idxActual = PESTANAS.findIndex(p => p.name === route.name);
+  const siguiente = idxActual === -1
+    ? PESTANAS[0]
+    : PESTANAS[(idxActual + 1) % PESTANAS.length];
+  const anterior = idxActual === -1
+    ? PESTANAS[PESTANAS.length - 1]
+    : PESTANAS[(idxActual - 1 + PESTANAS.length) % PESTANAS.length];
+
+  const go = (p) => {
+    onRoute({ name: p.name });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  return (
+    <>
+      <div className="pc-tabnav">
+        <button
+          className="pc-tabnav-btn pc-tabnav-prev"
+          onClick={() => go(anterior)}
+          aria-label={`Ir a ${anterior.label}`}
+          title={`← ${anterior.label}`}
+        >
+          <span className="pc-tabnav-arrow">←</span>
+          <span className="pc-tabnav-meta">
+            <span className="pc-tabnav-kicker">Anterior</span>
+            <span className="pc-tabnav-label">{anterior.label}</span>
+          </span>
+        </button>
+
+        <div className="pc-tabnav-dots" role="tablist" aria-label="Pestañas">
+          {PESTANAS.map((p, i) => (
+            <button
+              key={p.name}
+              className={"pc-tabnav-dot " + (i === idxActual ? "active" : "")}
+              onClick={() => go(p)}
+              aria-label={p.label}
+              title={p.label}
+            />
+          ))}
+        </div>
+
+        <button
+          className="pc-tabnav-btn pc-tabnav-next"
+          onClick={() => go(siguiente)}
+          aria-label={`Ir a ${siguiente.label}`}
+          title={`${siguiente.label} →`}
+        >
+          <span className="pc-tabnav-meta pc-tabnav-meta-right">
+            <span className="pc-tabnav-kicker">Siguiente</span>
+            <span className="pc-tabnav-label">{siguiente.label}</span>
+          </span>
+          <span className="pc-tabnav-arrow">→</span>
+        </button>
+      </div>
     </>
   );
 }
