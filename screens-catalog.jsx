@@ -330,6 +330,21 @@ function Detalle({ id_pelicula, onPick, onRoute, currentUser, miLista, toggleMiL
               </button>
             </div>
           </div>
+
+          {/* Sello "Garantía Puma" — solo para películas con 4+ estrellas
+              (equivalente a: SELECT ... WHERE AVG(CALIFICACION) >= 4) */}
+          {promedio >= 4 && (
+            <div className="pc-puma-garantia" aria-label="Garantía Puma">
+              <img
+                src="assets/puma-mascota.png"
+                alt="Mascota Puma UNAM"
+                className="pc-puma-garantia-img"
+              />
+              <div className="pc-puma-garantia-label">
+                <span className="pc-puma-garantia-title">Garantía Puma</span>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

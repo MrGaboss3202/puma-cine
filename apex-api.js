@@ -185,6 +185,30 @@
     return out;
   }
 
+  /* Mide el tamaño en bytes UTF-8 de una cadena (lo que Oracle
+     usa para validar VARCHAR2(n BYTE)). */
+  function bytesUtf8(s) {
+    if (!s) return 0;
+    return new TextEncoder().encode(String(s)).length;
+  }
+
+  /* Trunca un string para que ocupe a lo sumo `maxBytes` en UTF-8.
+     Devuelve null si la entrada era vacía/null. */
+  function truncarBytes(s, maxBytes) {
+    if (s == null) return null;
+    const str = String(s);
+    if (!str.length) return null;
+    const enc = new TextEncoder();
+    let bytes = enc.encode(str);
+    if (bytes.length <= maxBytes) return str;
+    // Recortamos byte a byte respetando los límites de carácter UTF-8.
+    // Estrategia: cortar el array de bytes y decodificar con fatal:false
+    // que descarta el último carácter incompleto automáticamente.
+    bytes = bytes.slice(0, maxBytes);
+    const dec = new TextDecoder("utf-8", { fatal: false });
+    return dec.decode(bytes).replace(/\uFFFD+$/, "");
+  }
+
   /* ============================================================
      API pública
      ============================================================ */
@@ -227,24 +251,25 @@
 
     /* INSERT INTO RESENA (...) VALUES (...) */
     async crearResena({ id_usuario, id_pelicula, headline, descripcion, calificacion }) {
-      // HEADLINE está limitado a VARCHAR2(50); truncamos por si acaso
-      // (Oracle cuenta bytes y los acentos ocupan 2).
-      const safeHeadline = headline ? String(headline).slice(0, 45) : null;
+      // Las columnas de Oracle VARCHAR2(n) sin "CHAR" cuentan BYTES, no
+      // caracteres. En UTF-8 los acentos y la ñ ocupan 2 bytes, así que
+      // un texto "visible" más corto que n caracteres puede pasarse del
+      // límite. Truncamos midiendo en bytes para garantizar que entra.
+      //   HEADLINE     VARCHAR2(50)
+      //   DESCRIPCION  VARCHAR2(1000)
+      const safeHeadline    = truncarBytes(headline,    50);
+      const safeDescripcion = truncarBytes(descripcion, 1000);
 
-      // Cuerpo del POST. No enviamos ID_RESENA: si tu tabla tiene una
-      // secuencia + trigger BEFORE INSERT, Oracle lo asigna solo. Si no,
-      // tendrás que mandar el id explícito (avisame).
       const body = {
         id_usuario,
         id_pelicula,
         headline: safeHeadline,
-        descripcion,
+        descripcion: safeDescripcion,
         calificacion
       };
 
-      // Log de diagnóstico para ver qué exactamente estamos mandando
-      // (abrir DevTools → Console al publicar reseña).
-      console.log("[Puma Cine] POST /resena/ body:", body);
+      console.log("[Puma Cine] POST /resena/ body:", body,
+        `· headline ${bytesUtf8(safeHeadline)} bytes · descripcion ${bytesUtf8(safeDescripcion)} bytes`);
 
       return post("resena", body);
     },
