@@ -143,50 +143,117 @@ function RatingChipOnPoster({ score }) {
   );
 }
 
-/* Header con navegación */
+/* Sidebar vertical izquierdo con navegación por iconos */
 function Header({ route, onRoute, query, setQuery, currentUser, onAvatarClick }) {
   const tabs = [
-    { id: "home", label: "Inicio" },
-    { id: "peliculas", label: "Películas" },
-    { id: "resenas", label: "Reseñas" },
-    { id: "mi-lista", label: "Mi Lista" },
-    { id: "mejor-calificadas", label: "Mejor Calificadas" }
+    { id: "home",              label: "Inicio",            icon: "assets/icon-casa.png" },
+    { id: "peliculas",         label: "Películas",         icon: "assets/icon-pelicula.png" },
+    { id: "mejor-calificadas", label: "Mejor Calificadas", icon: "assets/icon-estrella.png" },
+    { id: "resenas",           label: "Reseñas",           icon: "assets/icon-comentario.png" },
+    { id: "mi-lista",          label: "Mi Lista",          icon: "assets/icon-guardado.png" },
+    { id: "cine-mexicano",     label: "Cine Mexicano",     icon: "assets/icon-mexico.png" }
   ];
+
+  const [buscando, setBuscando] = React.useState(false);
+  const inputRef = React.useRef(null);
+
+  const openSearch = () => {
+    setBuscando(true);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  };
+  const closeSearch = () => {
+    setBuscando(false);
+    if (query) setQuery("");
+  };
+
+  const handleNav = (t) => {
+    if (t.id === "cine-mexicano") {
+      onRoute({ name: "peliculas", filtroPais: "México" });
+    } else {
+      onRoute({ name: t.id });
+    }
+  };
+
+  const isActive = (t) => {
+    if (t.id === "cine-mexicano") return route.name === "peliculas" && route.filtroPais === "México";
+    if (t.id === "peliculas")     return route.name === "peliculas" && !route.filtroPais;
+    return route.name === t.id;
+  };
+
   return (
-    <header className="pc-header">
-      <PCLogo onClick={() => onRoute({ name: "home" })} />
-      <nav className="pc-nav">
-        {tabs.map(t => (
+    <>
+      {/* Barra superior con logos a la derecha */}
+      <div className="pc-topbar">
+        <div className="pc-topbar-logos" onClick={() => onRoute({ name: "home" })}>
+          <img src="assets/logo-puma-head.png" alt="Puma" className="pc-topbar-logo-mark" />
+          <img src="assets/logo-puma-cine-text.png" alt="Puma Cine" className="pc-topbar-logo-text" />
+        </div>
+      </div>
+
+      <aside className="pc-sidebar">
+        <div className="pc-sidebar-profile" onClick={onAvatarClick}>
+          <div className="pc-sidebar-avatar" title={currentUser ? currentUser.nombre_completo : "Iniciar sesión"}>
+            {currentUser ? currentUser._ui.inicial : "?"}
+          </div>
+          <div className="pc-sidebar-profile-info">
+            {currentUser ? (
+              <>
+                <span className="pc-sidebar-profile-name">{currentUser.nombre_completo}</span>
+                <span className="pc-sidebar-profile-handle">@{currentUser.nombre_usuario}</span>
+              </>
+            ) : (
+              <>
+                <span className="pc-sidebar-profile-name">Invitado</span>
+                <span className="pc-sidebar-profile-handle">Inicia sesión →</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <nav className="pc-sidebar-nav">
+          {/* Búsqueda primero */}
           <button
-            key={t.id}
-            className={route.name === t.id ? "active" : ""}
-            onClick={() => onRoute({ name: t.id })}
+            className={"pc-sidebar-btn " + (buscando ? "active" : "")}
+            onClick={() => (buscando ? closeSearch() : openSearch())}
           >
-            {t.label}
+            <img src="assets/icon-lupa.png" alt="" className="pc-sidebar-icon" />
+            <span className="pc-sidebar-label">Buscar</span>
           </button>
-        ))}
-      </nav>
-      <div className="pc-header-right">
-        <div className="pc-search">
-          <Icon.Search />
+
+          <div className="pc-sidebar-sep" />
+
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              className={"pc-sidebar-btn " + (isActive(t) ? "active" : "")}
+              onClick={() => handleNav(t)}
+            >
+              <img src={t.icon} alt="" className="pc-sidebar-icon" />
+              <span className="pc-sidebar-label">{t.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Overlay de búsqueda que se despliega desde la izquierda */}
+      <div className={"pc-search-overlay " + (buscando ? "open" : "")} onClick={closeSearch}>
+        <div className="pc-search-overlay-box" onClick={(e) => e.stopPropagation()}>
+          <img src="assets/icon-lupa.png" alt="" className="pc-search-overlay-icon" />
           <input
-            placeholder="Buscar películas, directores…"
+            ref={inputRef}
+            className="pc-search-overlay-input"
+            placeholder="Buscar películas, directores, reseñas…"
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
               if (e.target.value && route.name !== "peliculas") onRoute({ name: "peliculas" });
             }}
+            onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }}
           />
-        </div>
-        <div
-          className="pc-avatar"
-          onClick={onAvatarClick}
-          title={currentUser ? currentUser.nombre_completo : "Iniciar sesión"}
-        >
-          {currentUser ? currentUser._ui.inicial : "?"}
+          <button className="pc-search-overlay-close" onClick={closeSearch} aria-label="Cerrar">×</button>
         </div>
       </div>
-    </header>
+    </>
   );
 }
 

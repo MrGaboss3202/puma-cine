@@ -3,6 +3,35 @@
    Inspirado en colores UNAM (azul + oro) con sensibilidad cinematográfica
    ============================================================ */
 
+@font-face {
+  font-family: "Netflix Sans";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("assets/fonts/NetflixSans-Light.otf") format("opentype");
+}
+@font-face {
+  font-family: "Netflix Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("assets/fonts/NetflixSans-Regular.otf") format("opentype");
+}
+@font-face {
+  font-family: "Netflix Sans";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("assets/fonts/NetflixSans-Medium.otf") format("opentype");
+}
+@font-face {
+  font-family: "Netflix Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("assets/fonts/NetflixSans-Bold.otf") format("opentype");
+}
+
 :root {
   /* Color tokens */
   --azul-noche:     #050912;
@@ -34,10 +63,10 @@
   --rojo:           #C4322B;
   --verde:          #5BAA6B;
 
-  /* Type */
-  --font-display: "Lora", "Iowan Old Style", Georgia, serif;
-  --font-body:    "Outfit", system-ui, -apple-system, sans-serif;
-  --font-mono:    "JetBrains Mono", "SF Mono", Menlo, monospace;
+  /* Type — Netflix Sans como familia única, con jerarquía por peso */
+  --font-display: "Netflix Sans", "Lora", "Iowan Old Style", Georgia, serif;
+  --font-body:    "Netflix Sans", system-ui, -apple-system, sans-serif;
+  --font-mono:    "Netflix Sans", "JetBrains Mono", "SF Mono", Menlo, monospace;
 
   /* Radius */
   --r-sm: 4px;
@@ -87,18 +116,7 @@ a { color: inherit; text-decoration: none; }
    HEADER
    ============================================================ */
 
-.pc-header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  padding: 18px 48px;
-  background: linear-gradient(180deg, rgba(5, 9, 18, 0.95) 0%, rgba(5, 9, 18, 0.75) 70%, transparent 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
+.pc-header { display: none; }
 
 .pc-logo {
   display: flex;
@@ -1606,3 +1624,610 @@ a { color: inherit; text-decoration: none; }
   .pc-hero-dot { width: 22px; }
   .pc-hero-dot.active { width: 40px; }
 }
+
+
+/* ============================================================
+   GARANTÍA PUMA — sello para películas con ≥ 4 estrellas
+   ============================================================ */
+.pc-puma-garantia {
+  position: absolute;
+  right: 32px;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  animation: pcPumaIn 0.7s cubic-bezier(.4,1.4,.5,1) both;
+}
+
+.pc-puma-garantia-img {
+  height: 320px;
+  width: auto;
+  filter:
+    drop-shadow(0 0 24px rgba(168, 128, 44, 0.45))
+    drop-shadow(0 12px 30px rgba(0, 0, 0, 0.55));
+  transform-origin: bottom center;
+  animation: pcPumaBounce 4s ease-in-out infinite;
+}
+
+.pc-puma-garantia-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 22px;
+  background: rgba(5, 9, 18, 0.78);
+  border: 1px solid var(--oro);
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px -8px rgba(168, 128, 44, 0.5);
+  margin-top: -10px;
+  pointer-events: auto;
+}
+
+.pc-puma-garantia-kicker {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  color: var(--crema-sutil);
+}
+.pc-puma-garantia-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  background: var(--oro-metal);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--oro-claro);
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+@keyframes pcPumaIn {
+  from { opacity: 0; transform: translateY(40px) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes pcPumaBounce {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50%      { transform: translateY(-6px) rotate(1.5deg); }
+}
+
+/* Asegura que el grid del detalle sea contenedor relativo para el badge */
+.pc-detail-grid {
+  position: relative;
+}
+
+@media (max-width: 1100px) {
+  .pc-puma-garantia { right: 16px; }
+  .pc-puma-garantia-img { height: 240px; }
+  .pc-puma-garantia-title { font-size: 17px; }
+}
+@media (max-width: 820px) {
+  .pc-puma-garantia {
+    position: static;
+    margin: 24px auto 0;
+    align-items: center;
+  }
+  .pc-puma-garantia-img { height: 200px; }
+}
+
+
+/* ============================================================
+   LOGIN — sello institucional UNAM
+   ============================================================ */
+.pc-login-unam {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0 22px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--gris-borde);
+}
+.pc-login-unam-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 12px rgba(168, 128, 44, 0.4));
+  flex-shrink: 0;
+}
+.pc-login-unam-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.pc-login-unam-kicker {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--oro-claro);
+  line-height: 1.2;
+}
+.pc-login-unam-sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--crema-tenue);
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 720px) {
+  .pc-login-unam { padding: 8px 0 16px; margin-bottom: 16px; }
+  .pc-login-unam-img { width: 44px; height: 44px; }
+  .pc-login-unam-kicker { font-size: 8.5px; letter-spacing: 0.15em; }
+  .pc-login-unam-sub { font-size: 11px; }
+}
+
+
+/* ============================================================
+   SIDEBAR VERTICAL IZQUIERDO (expandible en hover)
+   ============================================================ */
+
+:root {
+  --sidebar-w:         56px;
+  --sidebar-w-expand:  240px;
+}
+
+body {
+  padding-left: var(--sidebar-w);
+}
+
+.pc-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-w);
+  background: linear-gradient(180deg, rgba(5, 9, 18, 0.96) 0%, rgba(5, 9, 18, 0.92) 100%);
+  border-right: 1px solid var(--gris-borde);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 14px 8px 24px;
+  gap: 10px;
+  overflow: hidden;
+  transition: width .28s cubic-bezier(.4, 1.0, .5, 1),
+              border-color .28s ease,
+              box-shadow .28s ease;
+}
+.pc-sidebar:hover {
+  width: var(--sidebar-w-expand);
+  border-right-color: var(--oro);
+  box-shadow: 6px 0 30px rgba(0, 0, 0, 0.55);
+}
+
+/* Empuja la navegación más abajo, dejando espacio respiración al perfil */
+.pc-sidebar-nav {
+  margin-top: 140px !important;
+}
+
+/* Encabezado de perfil */
+.pc-sidebar-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 0 4px 16px;
+  border-bottom: 1px solid var(--gris-borde);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.pc-sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--azul-claro), var(--azul-unam));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--crema);
+  border: 2px solid transparent;
+  transition: border-color .2s ease, transform .2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.pc-sidebar-profile:hover .pc-sidebar-avatar {
+  border-color: var(--oro);
+}
+
+.pc-sidebar-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity .2s ease .04s, transform .25s ease .04s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.pc-sidebar:hover .pc-sidebar-profile-info {
+  opacity: 1;
+  transform: translateX(0);
+}
+.pc-sidebar-profile-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--crema);
+  letter-spacing: 0.01em;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.pc-sidebar-profile-handle {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  text-transform: lowercase;
+  letter-spacing: 0.06em;
+  color: var(--oro-claro);
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* Navegación */
+.pc-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.pc-sidebar-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  padding: 6px 8px;
+  transition: background .2s ease;
+  overflow: hidden;
+}
+.pc-sidebar-btn:hover {
+  background: rgba(168, 128, 44, 0.12);
+}
+.pc-sidebar-btn.active {
+  background: rgba(168, 128, 44, 0.18);
+}
+.pc-sidebar-btn.active::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 26px;
+  background: var(--oro-metal);
+  border-radius: 0 3px 3px 0;
+}
+
+.pc-sidebar-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(168, 128, 44, 0.35));
+  transition: filter .2s ease, transform .2s ease;
+  flex-shrink: 0;
+}
+.pc-sidebar-btn:hover .pc-sidebar-icon {
+  filter: drop-shadow(0 3px 10px rgba(168, 128, 44, 0.65));
+  transform: scale(1.08);
+}
+
+.pc-sidebar-label {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--crema);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity .2s ease .04s, transform .25s ease .04s;
+}
+.pc-sidebar:hover .pc-sidebar-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+.pc-sidebar-btn.active .pc-sidebar-label {
+  color: var(--oro-claro);
+  font-weight: 600;
+}
+
+.pc-sidebar-sep {
+  width: calc(100% - 16px);
+  height: 1px;
+  background: var(--gris-borde);
+  margin: 10px 8px 4px;
+}
+
+/* ============================================================
+   OVERLAY DE BÚSQUEDA
+   ============================================================ */
+.pc-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(5, 9, 18, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 90;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18vh;
+  padding-left: var(--sidebar-w);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .25s ease, visibility .25s ease;
+}
+.pc-search-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.pc-search-overlay-box {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: min(720px, 90%);
+  padding: 18px 22px;
+  background: rgba(20, 41, 107, 0.5);
+  border: 1px solid var(--oro);
+  border-radius: var(--r-xl);
+  box-shadow: 0 30px 80px -10px rgba(0, 0, 0, 0.7), 0 0 60px rgba(168, 128, 44, 0.15);
+  transform: translateY(-20px);
+  transition: transform .3s cubic-bezier(.4, 1.4, .5, 1);
+}
+.pc-search-overlay.open .pc-search-overlay-box {
+  transform: translateY(0);
+}
+
+.pc-search-overlay-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(168, 128, 44, 0.4));
+  flex-shrink: 0;
+}
+
+.pc-search-overlay-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--crema);
+  letter-spacing: 0.01em;
+}
+.pc-search-overlay-input::placeholder {
+  color: var(--crema-sutil);
+  font-style: italic;
+}
+
+.pc-search-overlay-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--gris-borde-fuerte);
+  color: var(--crema-tenue);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s ease, border-color .2s ease, color .2s ease;
+  flex-shrink: 0;
+}
+.pc-search-overlay-close:hover {
+  background: rgba(196, 50, 43, 0.15);
+  border-color: var(--rojo);
+  color: var(--rojo);
+}
+
+/* En móvil colapsamos el sidebar a una barra inferior */
+@media (max-width: 640px) {
+  body { padding-left: 0; padding-bottom: 72px; }
+  .pc-sidebar {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    height: auto;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 10px 12px;
+    border-right: none;
+    border-top: 1px solid var(--gris-borde);
+    gap: 4px;
+    overflow: visible;
+  }
+  .pc-sidebar:hover { width: 100% !important; box-shadow: none; }
+  .pc-sidebar-profile { display: none; }
+  .pc-sidebar-avatar { width: 36px; height: 36px; font-size: 14px; }
+  .pc-sidebar-nav { flex-direction: row; gap: 2px; margin-top: 0; }
+  .pc-sidebar-btn { width: 40px; height: 40px; padding: 6px; justify-content: center; }
+  .pc-sidebar-icon { width: 22px; height: 22px; }
+  .pc-sidebar-btn.active::before { display: none; }
+  .pc-sidebar-label { display: none !important; }
+  .pc-sidebar-sep { display: none; }
+  .pc-search-overlay { padding-left: 0; padding-top: 12vh; }
+}
+
+
+/* ============================================================
+   BARRA SUPERIOR — logos a la derecha (Puma + Puma Cine)
+   ============================================================ */
+/* La topbar se acomoda a la derecha del sidebar para no taparlo */
+.pc-topbar {
+  position: fixed;
+  top: 0;
+  left: var(--sidebar-w);
+  right: 0;
+  height: 96px;
+  background: linear-gradient(180deg, rgba(5, 9, 18, 0.94) 0%, rgba(5, 9, 18, 0.6) 80%, transparent 100%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 36px;
+  pointer-events: none;
+}
+
+.pc-topbar-logos {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.pc-topbar-logos:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.pc-topbar-logo-mark {
+  height: 88px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 16px rgba(168, 128, 44, 0.6));
+}
+.pc-topbar-logo-text {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(168, 128, 44, 0.4));
+}
+
+/* Empujar el contenido principal un poco hacia abajo para no quedar
+   tapado por la topbar */
+body > *:not(.pc-sidebar):not(.pc-topbar):not(.pc-search-overlay) {
+  /* margen interno aplicado por las propias páginas, así que aquí
+     solo aseguramos que el primer bloque no quede oculto */
+}
+
+.pc-screen-fade {
+  padding-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .pc-topbar {
+    left: 0;
+    height: 60px;
+    padding: 0 16px;
+  }
+  .pc-topbar-logo-mark { height: 44px; }
+  .pc-topbar-logo-text { height: 24px; }
+}
+
+
+/* ============================================================
+   NETFLIX SANS — jerarquía global por peso
+   ============================================================ */
+
+/* Base: regular (400) para todo el body */
+html, body, button, input, textarea, select {
+  font-family: "Netflix Sans", system-ui, sans-serif !important;
+}
+
+/* Cuerpo de texto / párrafos: regular */
+p, .pc-detail-synopsis, .pc-card-text, .pc-resena-text {
+  font-weight: 400;
+}
+
+/* Textos secundarios / meta / pies: light (300) */
+.pc-card-meta, .pc-hero-meta-item, .pc-helper, .pc-page-sub,
+.pc-stats span, .pc-profile-handle, .pc-card-text,
+.pc-hero-eyebrow, .pc-tabnav-kicker,
+.pc-sidebar-profile-handle,
+footer, .pc-resena-meta {
+  font-weight: 300;
+}
+
+/* Botones, navegación, chips, etiquetas activas: medium (500) */
+.pc-btn, .pc-chip, .pc-tab, .pc-nav button,
+.pc-sidebar-label, .pc-tabnav-label,
+.pc-input, .pc-textarea, .pc-select,
+.pc-label, .pc-tag, .pc-filter-label {
+  font-weight: 500;
+}
+
+/* Títulos: bold (700) */
+h1, h2, h3, h4, h5,
+.pc-hero-title, .pc-detail-title, .pc-page-title,
+.pc-logo-text, .pc-section-title, .pc-card-title,
+.pc-profile-name, .pc-form-card h1, .pc-form-card h2,
+.pc-puma-garantia-title, .pc-sidebar-profile-name,
+.pc-tab.active {
+  font-weight: 700;
+  letter-spacing: -0.005em;
+}
+
+/* Énfasis en titulares: mantener bold pero en dorado */
+h1 em, h2 em, h3 em,
+.pc-hero-title em, .pc-detail-title em, .pc-page-title em,
+.pc-logo-text em, .pc-section-title em {
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* Headings de sección menores en mayúsculas: medium */
+.pc-detail-body h4,
+.pc-tabnav-kicker, .pc-hero-eyebrow {
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+
+
+/* ============================================================
+   PADDING-TOP para que la topbar (96px) no tape los títulos
+   en páginas distintas a Inicio
+   ============================================================ */
+.pc-page,
+.pc-form-shell,
+.pc-profile-header {
+  padding-top: 110px !important;
+}
+
+.pc-resenas-section {
+  padding-top: 110px;
+}
+
+/* En el detalle el hero ocupa todo el ancho, sólo bajamos el botón
+   "Volver al catálogo" para que no quede tapado */
+.pc-detail-hero {
+  padding-top: 110px;
+}
+
+/* En Inicio el hero queda full-bleed (no se toca) — el carrusel ya
+   se posiciona en top:0 y la topbar se difumina sobre él */
