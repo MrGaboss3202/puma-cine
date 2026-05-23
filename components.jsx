@@ -248,7 +248,13 @@ function Header({ route, onRoute, query, setQuery, currentUser, onAvatarClick })
               setQuery(e.target.value);
               if (e.target.value && route.name !== "peliculas") onRoute({ name: "peliculas" });
             }}
-            onKeyDown={(e) => { if (e.key === "Escape") closeSearch(); }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeSearch();
+              if (e.key === "Enter") {
+                e.preventDefault();
+                setBuscando(false); // cerramos overlay pero mantenemos query para ver resultados
+              }
+            }}
           />
           <button className="pc-search-overlay-close" onClick={closeSearch} aria-label="Cerrar">×</button>
         </div>
