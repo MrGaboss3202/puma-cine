@@ -1765,7 +1765,6 @@ a { color: inherit; text-decoration: none; }
   .pc-login-unam-kicker { font-size: 8.5px; letter-spacing: 0.15em; }
   .pc-login-unam-sub { font-size: 11px; }
 }
-<<<<<<< HEAD
 
 
 /* ============================================================
@@ -2086,11 +2085,11 @@ body {
 /* ============================================================
    BARRA SUPERIOR — logos a la derecha (Puma + Puma Cine)
    ============================================================ */
-/* La topbar se acomoda a la derecha del sidebar para no taparlo */
+/* La topbar abarca todo el ancho — el sidebar queda por encima */
 .pc-topbar {
   position: fixed;
   top: 0;
-  left: var(--sidebar-w);
+  left: 0;
   right: 0;
   height: 96px;
   background: linear-gradient(180deg, rgba(5, 9, 18, 0.94) 0%, rgba(5, 9, 18, 0.6) 80%, transparent 100%);
@@ -2232,5 +2231,3 @@ h1 em, h2 em, h3 em,
 
 /* En Inicio el hero queda full-bleed (no se toca) — el carrusel ya
    se posiciona en top:0 y la topbar se difumina sobre él */
-=======
->>>>>>> e89571e22e341c1483624d6ad4f18578688fdd10
