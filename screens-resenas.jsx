@@ -105,8 +105,13 @@ function FormularioResena({ id_pelicula, onRoute, currentUser, onSubmit }) {
     }
     if (calif === 0) return setError("Selecciona una calificación.");
     if (descripcion.trim().length < 20) return setError("Tu reseña debe tener al menos 20 caracteres.");
-    if (descripcion.length > 1000) return setError("La descripción excede los 1000 caracteres permitidos.");
-    if (headline.length > 50) return setError("El título no puede pasar de 50 caracteres.");
+    // Oracle VARCHAR2(n) cuenta BYTES (acentos = 2). El cliente trunca
+    // antes de mandar, pero avisamos aquí también para que el usuario
+    // sepa que se va a recortar.
+    const bytesDesc = new TextEncoder().encode(descripcion).length;
+    const bytesHead = new TextEncoder().encode(headline).length;
+    if (bytesDesc > 1000) return setError(`Tu reseña ocupa ${bytesDesc} bytes (los acentos cuentan doble). Acorta unos ${bytesDesc - 1000} caracteres.`);
+    if (bytesHead > 50) return setError(`El título ocupa ${bytesHead} bytes. Acorta unos ${bytesHead - 50} caracteres.`);
     setError(null);
     onSubmit({
       id_pelicula: peliculaSel,
@@ -181,29 +186,35 @@ function FormularioResena({ id_pelicula, onRoute, currentUser, onSubmit }) {
             className="pc-input"
             placeholder="Un titular que resuma lo que sentiste"
             value={headline}
-            maxLength={50}
+            maxLength={80}
             onChange={(e) => setHeadline(e.target.value)}
           />
           <div className="pc-helper">
-            <span>VARCHAR2(50)</span>
-            <span>{headline.length} / 50</span>
+            <span>VARCHAR2(50) · acentos cuentan doble</span>
+            {(() => {
+              const b = new TextEncoder().encode(headline).length;
+              const color = b > 50 ? "var(--rojo)" : b > 42 ? "var(--oro-claro)" : "var(--crema-sutil)";
+              return <span style={{ color }}>{b} / 50 bytes</span>;
+            })()}
           </div>
         </div>
 
         <div className="pc-field">
-          <label className="pc-label">Tu reseña <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--crema-sutil)" }}>(descripción · 20–1000 caracteres)</span></label>
+          <label className="pc-label">Tu reseña <span style={{ textTransform: "none", letterSpacing: 0, color: "var(--crema-sutil)" }}>(descripción · 20–1000 bytes)</span></label>
           <textarea
             className="pc-textarea"
             placeholder="¿Qué te hizo sentir? ¿Qué destacarías? ¿Le sobró o le faltó algo? Mínimo 20 caracteres."
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
-            maxLength={1000}
+            maxLength={1500}
           />
           <div className="pc-helper">
-            <span>Usa &lt;em&gt;cursiva&lt;/em&gt; para enfatizar.</span>
-            <span style={{ color: descripcion.length > 900 ? "var(--oro-claro)" : "var(--crema-sutil)" }}>
-              {descripcion.length} / 1000
-            </span>
+            <span>Usa &lt;em&gt;cursiva&lt;/em&gt; para enfatizar · acentos cuentan doble</span>
+            {(() => {
+              const b = new TextEncoder().encode(descripcion).length;
+              const color = b > 1000 ? "var(--rojo)" : b > 900 ? "var(--oro-claro)" : "var(--crema-sutil)";
+              return <span style={{ color }}>{b} / 1000 bytes</span>;
+            })()}
           </div>
         </div>
 
@@ -416,11 +427,23 @@ function Login({ onLogin, onRoute }) {
     <div className="pc-login pc-screen-fade">
       <div className="pc-login-art">
         <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 28 }}>
-          <img
-            src="assets/puma-cine-logo.png"
-            alt="Puma Cine"
-            style={{ width: 180, height: 180, objectFit: "contain", filter: "drop-shadow(0 6px 28px rgba(168, 128, 44, 0.45))" }}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 28 }}>
+            <img
+              src="assets/puma-cine-logo.png"
+              alt="Puma Cine"
+              style={{ width: 180, height: 180, objectFit: "contain", filter: "drop-shadow(0 6px 28px rgba(168, 128, 44, 0.45))" }}
+            />
+            <div style={{
+              width: 1,
+              height: 120,
+              background: "linear-gradient(to bottom, transparent, rgba(245, 240, 225, 0.25), transparent)"
+            }} />
+            <img
+              src="assets/unam-logo.png"
+              alt="UNAM"
+              style={{ width: 150, height: 150, objectFit: "contain", filter: "drop-shadow(0 6px 28px rgba(168, 128, 44, 0.45))" }}
+            />
+          </div>
           <div className="pc-logo-text" style={{ fontSize: 30 }}>
             Puma <em style={{ color: "var(--oro)", fontStyle: "italic" }}>Cine</em>
           </div>
